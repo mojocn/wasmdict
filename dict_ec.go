@@ -7,6 +7,7 @@ import (
 	"encoding/csv"
 	"io"
 	"log"
+	"sort"
 	"strings"
 )
 
@@ -55,6 +56,7 @@ func (d *DictEntryEC) Map() map[string]interface{} {
 
 var dictMapSingleton = map[string]DictEntryEC{}
 var lemmaMapSingleton = map[string]string{}
+var allWords []string
 
 // PreLoadEcDict ensures that the dictionary and lemma maps are loaded into memory.
 // It checks if the `dictMapSingleton` and `lemmaMapSingleton` are empty.
@@ -88,6 +90,7 @@ func parseDict() map[string]DictEntryEC {
 		if word == "" {
 			continue
 		}
+		allWords = append(allWords, word)
 		dictItem := DictEntryEC{
 			Word:        word,
 			Phonetic:    record[1],
@@ -110,6 +113,7 @@ func parseDict() map[string]DictEntryEC {
 		dictMap[word] = dictItem
 		dictMap[strings.ToLower(word)] = dictItem
 	}
+	sort.Strings(allWords)
 	return dictMap
 }
 func removeBr(w string) string {
@@ -173,4 +177,29 @@ func EcLookUp(word string) *DictEntryEC {
 		return nil // Return nil if the word is not found in the dictionary.
 	}
 	return &dictItem // Return a pointer to the found dictionary item.
+}
+
+// EcQueryLike searches for words in the dictionary that start with the given prefix.
+// It ensures the dictionary is loaded into memory before performing the search.
+// It iterates through all words in the dictionary and collects those that start with the specified prefix.
+// The search stops once the specified number of matches (cnt) is reached.
+//
+// Parameters:
+// - w: The prefix to search for in the dictionary.
+// - cnt: The maximum number of matching words to return.
+//
+// Returns:
+// - []string: A slice of words that start with the given prefix, up to the specified count.
+func EcQueryLike(w string, cnt int) []string {
+	PreLoadEcDict()
+	var result []string
+	for _, word := range allWords {
+		if strings.HasPrefix(word, w) {
+			result = append(result, word)
+		}
+		if len(result) >= cnt {
+			break
+		}
+	}
+	return result
 }

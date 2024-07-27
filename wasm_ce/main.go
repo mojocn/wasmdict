@@ -9,42 +9,22 @@ import (
 
 const versionCe = "1.0.1"
 
-func ceLookUpTw(_ js.Value, args []js.Value) any {
-	if len(args) > 0 {
+func ceLookUp(_ js.Value, args []js.Value) any {
+	if len(args) > 1 {
+		isCnZh := args[1].Bool()
 		text := args[0].String()
-		res := wasmdict.CeLookUp(text, false)
+		res := wasmdict.CeLookUp(text, isCnZh)
 		if res != nil {
 			return js.ValueOf(res.Map())
 		}
 	}
 	return js.Undefined()
 }
-func ceLookUpCn(_ js.Value, args []js.Value) any {
-	if len(args) > 0 {
+func ceQueryLike(_ js.Value, args []js.Value) any {
+	if len(args) > 1 {
 		text := args[0].String()
-		res := wasmdict.CeLookUp(text, true)
-		if res != nil {
-			return js.ValueOf(res.Map())
-		}
-	}
-	return js.Undefined()
-}
-func ceQueryLikeTw(_ js.Value, args []js.Value) any {
-	if len(args) > 0 {
-		text := args[0].String()
-		words := wasmdict.CeQueryLike(text, false, 10)
-		results := make([]map[string]interface{}, 0, len(words))
-		for _, word := range words {
-			results = append(results, word.Map())
-		}
-		return js.ValueOf(results)
-	}
-	return js.Undefined()
-}
-func ceQueryLikeCn(_ js.Value, args []js.Value) any {
-	if len(args) > 0 {
-		text := args[0].String()
-		words := wasmdict.CeQueryLike(text, true, 10)
+		isCnZh := args[1].Bool()
+		words := wasmdict.CeQueryLike(text, isCnZh, 10)
 		results := make([]map[string]interface{}, 0, len(words))
 		for _, word := range words {
 			results = append(results, word.Map())
@@ -66,11 +46,9 @@ func ceDictInfo(_ js.Value, _ []js.Value) any {
 
 func main() {
 	wasmdict.PreLoadCeDict()
-	js.Global().Set("ceLookUpTw", js.FuncOf(ceLookUpTw))       //export window.ceLookUpTw to lookUp Traditional Chinese word
-	js.Global().Set("ceLookUpCn", js.FuncOf(ceLookUpCn))       //export window.ceLookUpCn to lookUp Simplified Chinese word
-	js.Global().Set("ceQueryLikeCn", js.FuncOf(ceQueryLikeCn)) //export window.ceQueryLikeCn to query Simplified Chinese word
-	js.Global().Set("ceQueryLikeTw", js.FuncOf(ceQueryLikeTw)) //export window.ceQueryLikeTw to query Traditional Chinese word
-	js.Global().Set("ceDictInfo", js.FuncOf(ceDictInfo))       //export window.ceDictInfo to get dictionary info
+	js.Global().Set("ceLookUp", js.FuncOf(ceLookUp))
+	js.Global().Set("ceQueryLike", js.FuncOf(ceQueryLike)) //
+	js.Global().Set("ceDictInfo", js.FuncOf(ceDictInfo))   //export window.ceDictInfo to get dictionary info
 	done := make(chan struct{})
 	<-done
 }

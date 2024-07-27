@@ -20,6 +20,20 @@ func lookUp(_ js.Value, args []js.Value) any {
 	return js.Undefined()
 }
 
+func queryLike(_ js.Value, args []js.Value) any {
+	if len(args) > 0 {
+		text := args[0].String()
+		words := wasmdict.EcQueryLike(text, 10)
+		results := make([]interface{}, len(words))
+		for i, word := range words {
+			results[i] = word
+		}
+		return js.ValueOf(results)
+	}
+	return js.Undefined()
+
+}
+
 func ecDictInfo(_ js.Value, _ []js.Value) any {
 	return map[string]interface{}{
 		"version":        versionEc,
@@ -32,6 +46,7 @@ func ecDictInfo(_ js.Value, _ []js.Value) any {
 
 func main() {
 	wasmdict.PreLoadEcDict()
+	js.Global().Set("ecQueryLike", js.FuncOf(queryLike)) //use window.ecQueryLike("word") to query like a word
 	js.Global().Set("ecLookUp", js.FuncOf(lookUp))       //use window.ecLookUp("word") to look up a word
 	js.Global().Set("ecDictInfo", js.FuncOf(ecDictInfo)) //use window.ecDictInfo() to get dictionary info
 	done := make(chan struct{})
