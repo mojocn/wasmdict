@@ -171,7 +171,6 @@ async function loadWasmCe(wasmUrl: string = "/dict_ce.wasm") {
 
 ## how to use in Go
 
-`go get -u github.com/mojocn/wasmecdict`
-
+`go get -u github.com/mojocn/wasmdict`
 
 ```
