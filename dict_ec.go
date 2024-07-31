@@ -7,7 +7,6 @@ import (
 	"encoding/csv"
 	"io"
 	"log"
-	"sort"
 	"strings"
 )
 
@@ -56,7 +55,6 @@ func (d *DictEntryEC) Map() map[string]interface{} {
 
 var dictMapSingleton = map[string]DictEntryEC{}
 var lemmaMapSingleton = map[string]string{}
-var allWords []string
 
 // PreLoadEcDict ensures that the dictionary and lemma maps are loaded into memory.
 // It checks if the `dictMapSingleton` and `lemmaMapSingleton` are empty.
@@ -68,6 +66,9 @@ func PreLoadEcDict() {
 	if len(lemmaMapSingleton) == 0 {
 		lemmaMapSingleton = parseLemma()
 	}
+	// Free up memory by setting the byte slices to nil.
+	ecdictCsv = nil
+	lemmaEnTxt = nil
 }
 
 func parseDict() map[string]DictEntryEC {
@@ -90,7 +91,6 @@ func parseDict() map[string]DictEntryEC {
 		if word == "" {
 			continue
 		}
-		allWords = append(allWords, word)
 		dictItem := DictEntryEC{
 			Word:        word,
 			Phonetic:    record[1],
@@ -113,7 +113,6 @@ func parseDict() map[string]DictEntryEC {
 		dictMap[word] = dictItem
 		dictMap[strings.ToLower(word)] = dictItem
 	}
-	sort.Strings(allWords)
 	return dictMap
 }
 func removeBr(w string) string {
@@ -193,7 +192,7 @@ func EcLookUp(word string) *DictEntryEC {
 func EcQueryLike(w string, cnt int) []string {
 	PreLoadEcDict()
 	var result []string
-	for _, word := range allWords {
+	for word, _ := range dictMapSingleton {
 		if strings.HasPrefix(word, w) {
 			result = append(result, word)
 		}

@@ -6,7 +6,6 @@ import (
 	_ "embed"
 	"io"
 	"log"
-	"slices"
 	"strings"
 )
 
@@ -32,8 +31,7 @@ func (d *DictEntryCE) Map() map[string]interface{} {
 	}
 }
 
-var ceDictSingletonTw []*DictEntryCE
-var ceDictSingletonCn []*DictEntryCE
+var ceItems []*DictEntryCE
 
 func parseLine(line string) *DictEntryCE {
 	line = strings.TrimSpace(line)
@@ -81,19 +79,19 @@ func removeSurnames(entries []*DictEntryCE) []*DictEntryCE {
 
 // PreLoadCeDict loads the CEDICT data from the embedded ZIP file and parses it into dictionary entries.
 // It returns two slices of dictionary entries: one sorted by Traditional Chinese and the other by Simplified Chinese.
-func PreLoadCeDict() (tw []*DictEntryCE, zh []*DictEntryCE) {
-	if len(ceDictSingletonTw) > 0 && len(ceDictSingletonCn) > 0 {
-		return ceDictSingletonTw, ceDictSingletonCn
+func PreLoadCeDict() []*DictEntryCE {
+	if len(ceItems) > 0 {
+		return ceItems
 	}
 	filesMap, err := extractZipBytes(ceDictZipData)
 	if err != nil {
 		log.Println("Error extracting ZIP data:", err)
-		return nil, nil
+		return nil
 	}
 	ceData, ok := filesMap["cedict_ts.u8"]
 	if !ok {
 		log.Println("Error extracting cedict_ts.u8")
-		return nil, nil
+		return nil
 	}
 	var result []*DictEntryCE
 	lines := strings.Split(string(ceData), "\n")
@@ -103,16 +101,10 @@ func PreLoadCeDict() (tw []*DictEntryCE, zh []*DictEntryCE) {
 			result = append(result, entry)
 		}
 	}
-	result = removeSurnames(result)
-	ceDictSingletonCn = result
-	slices.SortFunc(ceDictSingletonCn, func(a, b *DictEntryCE) int {
-		return strings.Compare(a.Simplified, b.Simplified)
-	})
-	ceDictSingletonTw = result
-	slices.SortFunc(ceDictSingletonTw, func(a, b *DictEntryCE) int {
-		return strings.Compare(a.Traditional, b.Traditional)
-	})
-	return ceDictSingletonTw, ceDictSingletonCn
+	ceItems = removeSurnames(result)
+	//free memory
+	ceDictZipData = nil
+	return ceItems
 }
 
 func extractZipBytes(zipData []byte) (map[string][]byte, error) {
@@ -158,9 +150,9 @@ func extractZipBytes(zipData []byte) (map[string][]byte, error) {
 // Returns: A slice of pointers to DictEntryCE structs that match the search criteria.
 func CeQueryLike(text string, isCnZh bool, count int) (result []*DictEntryCE) {
 	text = strings.TrimSpace(text)
-	tw, zh := PreLoadCeDict()
+	items := PreLoadCeDict()
 	if isCnZh {
-		for _, w := range zh {
+		for _, w := range items {
 			if strings.HasPrefix(w.Simplified, text) {
 				result = append(result, w)
 			}
@@ -169,7 +161,7 @@ func CeQueryLike(text string, isCnZh bool, count int) (result []*DictEntryCE) {
 			}
 		}
 	} else {
-		for _, w := range tw {
+		for _, w := range items {
 			if strings.HasPrefix(w.Traditional, text) {
 				result = append(result, w)
 			}
@@ -190,15 +182,15 @@ func CeQueryLike(text string, isCnZh bool, count int) (result []*DictEntryCE) {
 // Returns: A pointer to a DictEntryCE struct if a match is found, or nil if no match is found.
 func CeLookUp(text string, isCnZh bool) *DictEntryCE {
 	text = strings.TrimSpace(text)
-	tw, zh := PreLoadCeDict()
+	items := PreLoadCeDict()
 	if isCnZh {
-		for _, w := range zh {
+		for _, w := range items {
 			if strings.Compare(w.Simplified, text) == 0 {
 				return w
 			}
 		}
 	} else {
-		for _, w := range tw {
+		for _, w := range items {
 			if strings.Compare(w.Traditional, text) == 0 {
 				return w
 			}
